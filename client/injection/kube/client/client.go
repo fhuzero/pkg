@@ -39,13 +39,11 @@ import (
 	v2beta2 "k8s.io/api/autoscaling/v2beta2"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
-	v2alpha1 "k8s.io/api/batch/v2alpha1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	coordinationv1beta1 "k8s.io/api/coordination/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	discoveryv1alpha1 "k8s.io/api/discovery/v1alpha1"
 	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	eventsv1 "k8s.io/api/events/v1"
 	eventsv1beta1 "k8s.io/api/events/v1beta1"
@@ -91,13 +89,11 @@ import (
 	typedautoscalingv2beta2 "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
 	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	typedbatchv1beta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
-	typedbatchv2alpha1 "k8s.io/client-go/kubernetes/typed/batch/v2alpha1"
 	typedcertificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	typedcertificatesv1beta1 "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	typedcoordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	typedcoordinationv1beta1 "k8s.io/client-go/kubernetes/typed/coordination/v1beta1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	typeddiscoveryv1alpha1 "k8s.io/client-go/kubernetes/typed/discovery/v1alpha1"
 	typeddiscoveryv1beta1 "k8s.io/client-go/kubernetes/typed/discovery/v1beta1"
 	typedeventsv1 "k8s.io/client-go/kubernetes/typed/events/v1"
 	typedeventsv1beta1 "k8s.io/client-go/kubernetes/typed/events/v1beta1"
@@ -163,7 +159,6 @@ type wrapClient struct {
 	dyn dynamic.Interface
 }
 
-var _ kubernetes.Interface = (*wrapClient)(nil)
 
 func (w *wrapClient) Discovery() discovery.DiscoveryInterface {
 	panic("Discovery called on dynamic client!")
@@ -3808,152 +3803,6 @@ func (w *wrapBatchV1beta1CronJobImpl) Watch(ctx context.Context, opts metav1.Lis
 	return nil, errors.New("NYI: Watch")
 }
 
-// BatchV2alpha1 retrieves the BatchV2alpha1Client
-func (w *wrapClient) BatchV2alpha1() typedbatchv2alpha1.BatchV2alpha1Interface {
-	return &wrapBatchV2alpha1{
-		dyn: w.dyn,
-	}
-}
-
-type wrapBatchV2alpha1 struct {
-	dyn dynamic.Interface
-}
-
-func (w *wrapBatchV2alpha1) RESTClient() rest.Interface {
-	panic("RESTClient called on dynamic client!")
-}
-
-func (w *wrapBatchV2alpha1) CronJobs(namespace string) typedbatchv2alpha1.CronJobInterface {
-	return &wrapBatchV2alpha1CronJobImpl{
-		dyn: w.dyn.Resource(schema.GroupVersionResource{
-			Group:    "batch",
-			Version:  "v2alpha1",
-			Resource: "cronjobs",
-		}),
-
-		namespace: namespace,
-	}
-}
-
-type wrapBatchV2alpha1CronJobImpl struct {
-	dyn dynamic.NamespaceableResourceInterface
-
-	namespace string
-}
-
-var _ typedbatchv2alpha1.CronJobInterface = (*wrapBatchV2alpha1CronJobImpl)(nil)
-
-func (w *wrapBatchV2alpha1CronJobImpl) Create(ctx context.Context, in *v2alpha1.CronJob, opts metav1.CreateOptions) (*v2alpha1.CronJob, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "batch",
-		Version: "v2alpha1",
-		Kind:    "CronJob",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJob{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v2alpha1.CronJob, error) {
-	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJob{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) List(ctx context.Context, opts metav1.ListOptions) (*v2alpha1.CronJobList, error) {
-	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJobList{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v2alpha1.CronJob, err error) {
-	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJob{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) Update(ctx context.Context, in *v2alpha1.CronJob, opts metav1.UpdateOptions) (*v2alpha1.CronJob, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "batch",
-		Version: "v2alpha1",
-		Kind:    "CronJob",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJob{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) UpdateStatus(ctx context.Context, in *v2alpha1.CronJob, opts metav1.UpdateOptions) (*v2alpha1.CronJob, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "batch",
-		Version: "v2alpha1",
-		Kind:    "CronJob",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &v2alpha1.CronJob{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapBatchV2alpha1CronJobImpl) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	return nil, errors.New("NYI: Watch")
-}
-
 // CertificatesV1 retrieves the CertificatesV1Client
 func (w *wrapClient) CertificatesV1() typedcertificatesv1.CertificatesV1Interface {
 	return &wrapCertificatesV1{
@@ -6639,152 +6488,6 @@ func (w *wrapCoreV1ServiceAccountImpl) Watch(ctx context.Context, opts metav1.Li
 
 func (w *wrapCoreV1ServiceAccountImpl) CreateToken(ctx context.Context, _ string, in *authenticationv1.TokenRequest, opts metav1.CreateOptions) (*authenticationv1.TokenRequest, error) {
 	panic("NYI")
-}
-
-// DiscoveryV1alpha1 retrieves the DiscoveryV1alpha1Client
-func (w *wrapClient) DiscoveryV1alpha1() typeddiscoveryv1alpha1.DiscoveryV1alpha1Interface {
-	return &wrapDiscoveryV1alpha1{
-		dyn: w.dyn,
-	}
-}
-
-type wrapDiscoveryV1alpha1 struct {
-	dyn dynamic.Interface
-}
-
-func (w *wrapDiscoveryV1alpha1) RESTClient() rest.Interface {
-	panic("RESTClient called on dynamic client!")
-}
-
-func (w *wrapDiscoveryV1alpha1) EndpointSlices(namespace string) typeddiscoveryv1alpha1.EndpointSliceInterface {
-	return &wrapDiscoveryV1alpha1EndpointSliceImpl{
-		dyn: w.dyn.Resource(schema.GroupVersionResource{
-			Group:    "discovery.k8s.io",
-			Version:  "v1alpha1",
-			Resource: "endpointslices",
-		}),
-
-		namespace: namespace,
-	}
-}
-
-type wrapDiscoveryV1alpha1EndpointSliceImpl struct {
-	dyn dynamic.NamespaceableResourceInterface
-
-	namespace string
-}
-
-var _ typeddiscoveryv1alpha1.EndpointSliceInterface = (*wrapDiscoveryV1alpha1EndpointSliceImpl)(nil)
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Create(ctx context.Context, in *discoveryv1alpha1.EndpointSlice, opts metav1.CreateOptions) (*discoveryv1alpha1.EndpointSlice, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "discovery.k8s.io",
-		Version: "v1alpha1",
-		Kind:    "EndpointSlice",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSlice{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Get(ctx context.Context, name string, opts metav1.GetOptions) (*discoveryv1alpha1.EndpointSlice, error) {
-	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSlice{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) List(ctx context.Context, opts metav1.ListOptions) (*discoveryv1alpha1.EndpointSliceList, error) {
-	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSliceList{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *discoveryv1alpha1.EndpointSlice, err error) {
-	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSlice{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Update(ctx context.Context, in *discoveryv1alpha1.EndpointSlice, opts metav1.UpdateOptions) (*discoveryv1alpha1.EndpointSlice, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "discovery.k8s.io",
-		Version: "v1alpha1",
-		Kind:    "EndpointSlice",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSlice{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) UpdateStatus(ctx context.Context, in *discoveryv1alpha1.EndpointSlice, opts metav1.UpdateOptions) (*discoveryv1alpha1.EndpointSlice, error) {
-	in.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "discovery.k8s.io",
-		Version: "v1alpha1",
-		Kind:    "EndpointSlice",
-	})
-	uo := &unstructured.Unstructured{}
-	if err := convert(in, uo); err != nil {
-		return nil, err
-	}
-	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
-	if err != nil {
-		return nil, err
-	}
-	out := &discoveryv1alpha1.EndpointSlice{}
-	if err := convert(uo, out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (w *wrapDiscoveryV1alpha1EndpointSliceImpl) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	return nil, errors.New("NYI: Watch")
 }
 
 // DiscoveryV1beta1 retrieves the DiscoveryV1beta1Client
